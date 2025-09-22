@@ -14,11 +14,11 @@ import pandas as pd
 # DEFAULT CONFIG (can be overridden by CLI)
 # --------------------------
 
-GAME_NAME   = "fl_state_louisville_02222025"          # change this or pass --game
-TABLE_PATH  = Path("data/game_csv/all_videos.xls")  # master table with columns: game,start,end,name
-VIDEO_DIR   = Path("data/game_videos")              # where full-game videos live
-OUT_ROOT    = Path("data/game_clips")               # root folder for outputs
-FRAME_ACCURATE = True                               # --no-frame-accurate to speed up
+GAME_NAME   = "bc_louisville_02052025"          # change this or pass --game
+TABLE_PATH  = Path("all_videos.xls")  # master table with columns: game,start,end,name
+VIDEO_DIR   = Path("../data/game_videos")              # where full-game videos live
+OUT_ROOT    = Path("../data/game_clips")               # root folder for outputs
+FRAME_ACCURATE = False                               # --no-frame-accurate to speed up
 
 # --------------------------
 # HELPERS
@@ -119,7 +119,7 @@ def cut_clip_ffmpeg(src_video: Path, start: str, end: str, out_path: Path, accur
             "-ss", f"{start_s:.3f}",
             "-t",  f"{dur_s:.3f}",
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
-            "-c:a", "aac", "-movflags", "+faststart",
+            "-an", "-movflags", "+faststart",
             str(out_path)
         ]
     else:
@@ -128,7 +128,9 @@ def cut_clip_ffmpeg(src_video: Path, start: str, end: str, out_path: Path, accur
             "-ss", f"{start_s:.3f}",
             "-t",  f"{dur_s:.3f}",
             "-i", str(src_video),
-            "-c", "copy",
+            "-map", "0:v:0",
+            "-c:v", "copy",
+            "-an",
             str(out_path)
         ]
     return subprocess.call(cmd)
