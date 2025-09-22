@@ -141,7 +141,7 @@ def main():
     # 7) Save video
     save_video(output_frames, args.output_video)
     os.makedirs("output", exist_ok=True)   # make sure output folder exists
-    save_tracks_csv(player_tracks, ball_tracks, "output/tracks.csv")
+    save_tracks_csv(player_tracks, ball_tracks, f"output/tracks.csv")
 
 if __name__ == "__main__":
     main()
