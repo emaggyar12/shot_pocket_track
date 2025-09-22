@@ -1,10 +1,15 @@
 import pandas as pd
 import numpy as np
 
-CSV_PATH       = "most_overlap.csv"
+CSV_PATH       = "most_overall_edited.csv"
 
-import pandas as pd
-import numpy as np
+"""
+TODO
+This is the best file for predicting the shot pocket of the player
+next steps would be to find the release point of the player, this is the last frame where the ball has overlap with the shooter
+use the first catch frame and the shot pocket frame to find the deviation in the catch and the shot pocket
+maybe do something where you calculate the average shot pocket of a shooter
+"""
 
 def find_pocket(csv_path):
     df = pd.read_csv(csv_path)

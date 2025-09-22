@@ -2,13 +2,13 @@
 import cv2
 import os
 
-VIDEO_PATH = "output/output_edwards.mp4"
+VIDEO_PATH = "output/output_edwards_make.mp4"
 OUT_DIR = "postprocess/debug_frames"
 
 # Replace these with the frame numbers you want to inspect
-FIRST_TOUCH = 76
-POCKET      = 98
-RISE_START  = 114
+FIRST_TOUCH = 80
+POCKET      = 96
+RISE_START  = 105
 
 # Number of frames before/after to grab for context
 PAD = 3

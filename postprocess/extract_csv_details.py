@@ -92,6 +92,37 @@ def main():
             "player_x1": best_box[0], "player_y1": best_box[1], "player_x2": best_box[2], "player_y2": best_box[3]
         })
 
+    from collections import defaultdict
+
+    iou_sum_by_player = defaultdict(float)
+    inter_sum_by_player = defaultdict(float)
+
+    for f in frames:
+        ball_box = balls_by_frame.get(f)
+        if ball_box is None:
+            continue  # no ball this frame, skip
+
+        for pid, pbox in players_by_frame.get(f, []):
+            # IoU
+            iou_val = iou(ball_box, pbox)
+            iou_sum_by_player[pid] += float(iou_val)
+
+            # Raw intersection area
+            _, inter_area = intersect(ball_box, pbox)
+            inter_sum_by_player[pid] += float(inter_area)
+
+    def top_key(d):
+        return max(d.items(), key=lambda kv: kv[1])[0] if d else -1
+
+    top_iou_pid = top_key(iou_sum_by_player)
+    top_iou_val = iou_sum_by_player.get(top_iou_pid, 0.0)
+
+    top_inter_pid = top_key(inter_sum_by_player)
+    top_inter_val = inter_sum_by_player.get(top_inter_pid, 0.0)
+
+    print(f"[global] top_cumulative_iou: player={top_iou_pid}, total_iou={top_iou_val:.6f}")
+    print(f"[global] top_cumulative_intersection_area: player={top_inter_pid}, total_area={top_inter_val:.2f}")
+
     out_df = pd.DataFrame(out_rows, columns=[
         "frame",
         "ball_x1","ball_y1","ball_x2","ball_y2",
