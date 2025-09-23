@@ -3,6 +3,7 @@ from get_videos_2 import download_video
 import argparse
 from parse_videos_2 import parse_videos
 from send2trash import send2trash
+from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description="Download and cut clips for a single game from a master table.")
@@ -25,7 +26,7 @@ def main():
         download_video(link, game_name)
         parse_videos(game_name, team_shot_table)
 
-        video_path = f'data/game_videos/{game_name}.mp4'
+        video_path = Path(f'data/game_videos/{game_name}.mp4')
         if video_path.exists():
             send2trash(str(video_path))   # safe: goes to Trash/Recycle Bin
             print(f"[TRASHED] {video_path}")
