@@ -13,7 +13,7 @@ def download_video(url: str, save_as: str):
     print(f"\nDownloading: {url}")
     cmd = [
         "yt-dlp",
-        "-f", '398',         # video-only format
+        "-f", "398/298/136/135/397/134/396/133/395/160/394",         # video-only format
         "--merge-output-format", "mp4",
         '-o', full_path,
         url,
