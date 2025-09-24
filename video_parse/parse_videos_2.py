@@ -9,11 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
-
-# === Runtime-configurable paths (set from main.py) ===
-VIDEO_DIR = ""   # e.g., "/abs/path/to/full_game_videos"
-OUT_ROOT  = ""   # e.g., "/abs/path/to/output_clips_root"
-
+from edit_excel import normalize_times_fill_end
 
 # --------------------------
 # HELPERS
@@ -205,6 +201,12 @@ def parse_videos(game_name, table_path, frame_accurate=False):
     output_dir = Path(out_dir)
 
     df = read_table(table_path)
+
+    df[['start', 'end']] = df.apply(
+        lambda r: pd.Series(normalize_times_fill_end(r['start'], r['end'])),
+        axis=1
+    )
+
     df["start"] = df["start"].apply(normalize_time_string)
     df["end"]   = df["end"].apply(normalize_time_string)
 
