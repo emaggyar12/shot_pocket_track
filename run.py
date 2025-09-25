@@ -10,19 +10,19 @@ from team_assigner import TeamAssigner
 from configs import (
     PLAYER_DETECTOR_PATH,
     BALL_DETECTOR_PATH,
-    OUTPUT_VIDEO_PATH,
+    # OUTPUT_VIDEO_PATH,
     # STUBS_DEFAULT_PATH,  # only if you want to use stubs
 )
 
 def parse_args():
     p = argparse.ArgumentParser(description="Minimal Basketball Detector/Tracker")
-    p.add_argument("input_video", type=str, help="Path to input video file")
-    p.add_argument(
-        "--output_video",
-        type=str,
-        default=OUTPUT_VIDEO_PATH,
-        help="Path to output video file (e.g., output.mp4)",
-    )
+    p.add_argument("input_path", type=str, help="Path to input video file")
+    # p.add_argument(
+    #     "--output_video",
+    #     type=str,
+    #     default=OUTPUT_VIDEO_PATH,
+    #     help="Path to output video file (e.g., output.mp4)",
+    # )
     # If you want stubs, uncomment these:
     # p.add_argument("--stub_path", type=str, default=STUBS_DEFAULT_PATH, help="Path to stub dir")
     # p.add_argument("--use_stubs", action="store_true", help="Read detections from stubs if available")
@@ -96,52 +96,116 @@ def draw_basic_boxes(frames, player_tracks, ball_tracks, player_color=(0, 255, 0
         out.append(frame)
     return out
 
-def main():
+
+def inference():
     args = parse_args()
 
-    # 1) Read frames
-    frames = read_video(args.input_video)
+    input_path = args.input_path
 
-    # 2) Init trackers
-    player_tracker = PlayerTracker(PLAYER_DETECTOR_PATH)
-    ball_tracker = BallTracker(BALL_DETECTOR_PATH)
+    if os.path.isdir(input_path):
+        for file in os.listdir(input_path):
+            if file.endswith('.mp4'):
+                file_path = os.path.join(input_path, file)
+                print(f"Running inference on: {file_path}")
 
-    # 3) Run detection/tracking
-    # If you want stub support, change read_from_stub and add stub_path.
-    player_tracks = player_tracker.get_object_tracks(
-        frames,
-        read_from_stub=False,
-        # stub_path=os.path.join(args.stub_path, "player_track_stubs.pkl")
-    )
-    ball_tracks = ball_tracker.get_object_tracks(
-        frames,
-        read_from_stub=False,
-        # stub_path=os.path.join(args.stub_path, "ball_track_stubs.pkl")
-    )
+                frames = read_video(file_path)
 
-    # 4) Optional ball cleanup (safe no-ops if your class includes these)
-    if hasattr(ball_tracker, "remove_wrong_detections"):
-        ball_tracks = ball_tracker.remove_wrong_detections(ball_tracks)
-    if hasattr(ball_tracker, "interpolate_ball_positions"):
-        ball_tracks = ball_tracker.interpolate_ball_positions(ball_tracks)
+                # 2) Init trackers
+                player_tracker = PlayerTracker(PLAYER_DETECTOR_PATH)
+                ball_tracker = BallTracker(BALL_DETECTOR_PATH)
 
-    # 5) Team assignment (minimal)
-    team_assigner = TeamAssigner()
-    _player_assignment = team_assigner.get_player_teams_across_frames(
-        frames,
-        player_tracks,
-        read_from_stub=False,
-        # stub_path=os.path.join(args.stub_path, "player_assignment_stub.pkl")
-    )
-    # (We don’t draw team colors here, but you now have the mapping if you need it.)
+                # 3) Run detection/tracking
+                # If you want stub support, change read_from_stub and add stub_path.
+                player_tracks = player_tracker.get_object_tracks(
+                    frames,
+                    read_from_stub=False,
+                    # stub_path=os.path.join(args.stub_path, "player_track_stubs.pkl")
+                )
+                ball_tracks = ball_tracker.get_object_tracks(
+                    frames,
+                    read_from_stub=False,
+                    # stub_path=os.path.join(args.stub_path, "ball_track_stubs.pkl")
+                )
 
-    # 6) Minimal overlay (rectangles only)
-    output_frames = draw_basic_boxes(frames, player_tracks, ball_tracks)
+                # 4) Optional ball cleanup (safe no-ops if your class includes these)
+                if hasattr(ball_tracker, "remove_wrong_detections"):
+                    ball_tracks = ball_tracker.remove_wrong_detections(ball_tracks)
+                if hasattr(ball_tracker, "interpolate_ball_positions"):
+                    ball_tracks = ball_tracker.interpolate_ball_positions(ball_tracks)
 
-    # 7) Save video
-    save_video(output_frames, args.output_video)
-    os.makedirs("output", exist_ok=True)   # make sure output folder exists
-    save_tracks_csv(player_tracks, ball_tracks, f"output/tracks.csv")
+                # 5) Team assignment (minimal)
+                team_assigner = TeamAssigner()
+                _player_assignment = team_assigner.get_player_teams_across_frames(
+                    frames,
+                    player_tracks,
+                    read_from_stub=False,
+                    # stub_path=os.path.join(args.stub_path, "player_assignment_stub.pkl")
+                )
+                # (We don’t draw team colors here, but you now have the mapping if you need it.)
+
+                # 6) Minimal overlay (rectangles only)
+                output_frames = draw_basic_boxes(frames, player_tracks, ball_tracks)
+
+                base, _ = os.path.splitext(file)
+
+                # Defining output csv path
+                output_csv = os.path.join(input_path, f"{base}_tracks.csv")
+                
+                # Defining output video path
+                output_video = os.path.join(input_path, f"{base}_output.mp4")
+
+                # 7) Save video
+                save_video(output_frames, output_video)
+                # os.makedirs("output", exist_ok=True)   # make sure output folder exists
+                save_tracks_csv(player_tracks, ball_tracks, output_csv)
+    
+
+# def main():
+#     args = parse_args()
+
+#     # 1) Read frames
+#     frames = read_video(args.input_video)
+
+#     # 2) Init trackers
+#     player_tracker = PlayerTracker(PLAYER_DETECTOR_PATH)
+#     ball_tracker = BallTracker(BALL_DETECTOR_PATH)
+
+#     # 3) Run detection/tracking
+#     # If you want stub support, change read_from_stub and add stub_path.
+#     player_tracks = player_tracker.get_object_tracks(
+#         frames,
+#         read_from_stub=False,
+#         # stub_path=os.path.join(args.stub_path, "player_track_stubs.pkl")
+#     )
+#     ball_tracks = ball_tracker.get_object_tracks(
+#         frames,
+#         read_from_stub=False,
+#         # stub_path=os.path.join(args.stub_path, "ball_track_stubs.pkl")
+#     )
+
+#     # 4) Optional ball cleanup (safe no-ops if your class includes these)
+#     if hasattr(ball_tracker, "remove_wrong_detections"):
+#         ball_tracks = ball_tracker.remove_wrong_detections(ball_tracks)
+#     if hasattr(ball_tracker, "interpolate_ball_positions"):
+#         ball_tracks = ball_tracker.interpolate_ball_positions(ball_tracks)
+
+#     # 5) Team assignment (minimal)
+#     team_assigner = TeamAssigner()
+#     _player_assignment = team_assigner.get_player_teams_across_frames(
+#         frames,
+#         player_tracks,
+#         read_from_stub=False,
+#         # stub_path=os.path.join(args.stub_path, "player_assignment_stub.pkl")
+#     )
+#     # (We don’t draw team colors here, but you now have the mapping if you need it.)
+
+#     # 6) Minimal overlay (rectangles only)
+#     output_frames = draw_basic_boxes(frames, player_tracks, ball_tracks)
+
+#     # 7) Save video
+#     save_video(output_frames, args.output_video)
+#     os.makedirs("output", exist_ok=True)   # make sure output folder exists
+#     save_tracks_csv(player_tracks, ball_tracks, f"output/tracks.csv")
 
 if __name__ == "__main__":
-    main()
+    inference()
