@@ -16,7 +16,8 @@ from configs import (
 
 def parse_args():
     p = argparse.ArgumentParser(description="Minimal Basketball Detector/Tracker")
-    p.add_argument("input_path", type=str, help="Path to input video file")
+    # p.add_argument("input_path", type=str, help="Path to input video file")
+    p.add_argument("--input_path", type=str, required=True, help="Path to input video file")
     # p.add_argument(
     #     "--output_video",
     #     type=str,
@@ -28,24 +29,24 @@ def parse_args():
     # p.add_argument("--use_stubs", action="store_true", help="Read detections from stubs if available")
     return p.parse_args()
 
-def save_tracks_csv(player_tracks, ball_tracks, output_csv):
+def save_tracks_csv(player_tracks, ball_tracks, output_csv, game_name, play_instance):
     with open(output_csv, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["frame", "id", "type", "x1", "y1", "x2", "y2"])
+        writer.writerow(["game_name", "play_instance", "frame", "id", "type", "x1", "y1", "x2", "y2"])
         
         # Players
         for frame_idx, tracks in enumerate(player_tracks):
             if isinstance(tracks, dict):
                 for pid, info in tracks.items():
                     x1, y1, x2, y2 = info["bbox"]
-                    writer.writerow([frame_idx, pid, "player", x1, y1, x2, y2])
+                    writer.writerow([game_name, play_instance, frame_idx, pid, "player", x1, y1, x2, y2])
 
         # Ball
         for frame_idx, tracks in enumerate(ball_tracks):
             if isinstance(tracks, dict):
                 for bid, info in tracks.items():
                     x1, y1, x2, y2 = info["bbox"]
-                    writer.writerow([frame_idx, bid, "ball", x1, y1, x2, y2])
+                    writer.writerow([game_name, play_instance, frame_idx, bid, "ball", x1, y1, x2, y2])
 
 def draw_basic_boxes(frames, player_tracks, ball_tracks, player_color=(0, 255, 0), ball_color=(0, 0, 255)):
     """
@@ -97,67 +98,153 @@ def draw_basic_boxes(frames, player_tracks, ball_tracks, player_color=(0, 255, 0
     return out
 
 
-def inference():
+# def inference():
+#     args = parse_args()
+
+#     input_path = args.input_path
+
+#     if os.path.isdir(input_path):
+#         for file in os.listdir(input_path):
+#             if file.endswith('.mp4'):
+#                 file_path = os.path.join(input_path, file)
+#                 print(f"Running inference on: {file_path}")
+
+#                 frames = read_video(file_path)
+
+#                 # 2) Init trackers
+#                 player_tracker = PlayerTracker(PLAYER_DETECTOR_PATH)
+#                 ball_tracker = BallTracker(BALL_DETECTOR_PATH)
+
+#                 # 3) Run detection/tracking
+#                 # If you want stub support, change read_from_stub and add stub_path.
+#                 player_tracks = player_tracker.get_object_tracks(
+#                     frames,
+#                     read_from_stub=False,
+#                     # stub_path=os.path.join(args.stub_path, "player_track_stubs.pkl")
+#                 )
+#                 ball_tracks = ball_tracker.get_object_tracks(
+#                     frames,
+#                     read_from_stub=False,
+#                     # stub_path=os.path.join(args.stub_path, "ball_track_stubs.pkl")
+#                 )
+
+#                 # 4) Optional ball cleanup (safe no-ops if your class includes these)
+#                 if hasattr(ball_tracker, "remove_wrong_detections"):
+#                     ball_tracks = ball_tracker.remove_wrong_detections(ball_tracks)
+#                 if hasattr(ball_tracker, "interpolate_ball_positions"):
+#                     ball_tracks = ball_tracker.interpolate_ball_positions(ball_tracks)
+
+#                 # 5) Team assignment (minimal)
+#                 team_assigner = TeamAssigner()
+#                 _player_assignment = team_assigner.get_player_teams_across_frames(
+#                     frames,
+#                     player_tracks,
+#                     read_from_stub=False,
+#                     # stub_path=os.path.join(args.stub_path, "player_assignment_stub.pkl")
+#                 )
+#                 # (We don’t draw team colors here, but you now have the mapping if you need it.)
+
+#                 # 6) Minimal overlay (rectangles only)
+#                 output_frames = draw_basic_boxes(frames, player_tracks, ball_tracks)
+
+#                 base, _ = os.path.splitext(file)
+
+#                 # Defining output csv path
+#                 output_csv = os.path.join(input_path, f"{base}_tracks.csv")
+                
+#                 # Defining output video path
+#                 output_video = os.path.join(input_path, f"{base}_output.mp4")
+
+#                 # 7) Save video
+#                 save_video(output_frames, output_video)
+#                 # os.makedirs("output", exist_ok=True)   # make sure output folder exists
+#                 save_tracks_csv(player_tracks, ball_tracks, output_csv)
+
+def run_inference():
     args = parse_args()
 
     input_path = args.input_path
 
-    if os.path.isdir(input_path):
-        for file in os.listdir(input_path):
-            if file.endswith('.mp4'):
-                file_path = os.path.join(input_path, file)
-                print(f"Running inference on: {file_path}")
+    if os.path.isfile(input_path) and input_path.lower().endswith(".mp4"):
+        print(f"Running inference on: {input_path}")
 
-                frames = read_video(file_path)
+        frames = read_video(input_path)
 
-                # 2) Init trackers
-                player_tracker = PlayerTracker(PLAYER_DETECTOR_PATH)
-                ball_tracker = BallTracker(BALL_DETECTOR_PATH)
+        # 2) Init trackers
+        player_tracker = PlayerTracker(PLAYER_DETECTOR_PATH)
+        ball_tracker = BallTracker(BALL_DETECTOR_PATH)
 
-                # 3) Run detection/tracking
-                # If you want stub support, change read_from_stub and add stub_path.
-                player_tracks = player_tracker.get_object_tracks(
-                    frames,
-                    read_from_stub=False,
-                    # stub_path=os.path.join(args.stub_path, "player_track_stubs.pkl")
-                )
-                ball_tracks = ball_tracker.get_object_tracks(
-                    frames,
-                    read_from_stub=False,
-                    # stub_path=os.path.join(args.stub_path, "ball_track_stubs.pkl")
-                )
+        # 3) Run detection/tracking
+        # If you want stub support, change read_from_stub and add stub_path.
+        player_tracks = player_tracker.get_object_tracks(
+            frames,
+            read_from_stub=False,
+            # stub_path=os.path.join(args.stub_path, "player_track_stubs.pkl")
+        )
+        ball_tracks = ball_tracker.get_object_tracks(
+            frames,
+            read_from_stub=False,
+            # stub_path=os.path.join(args.stub_path, "ball_track_stubs.pkl")
+        )
 
-                # 4) Optional ball cleanup (safe no-ops if your class includes these)
-                if hasattr(ball_tracker, "remove_wrong_detections"):
-                    ball_tracks = ball_tracker.remove_wrong_detections(ball_tracks)
-                if hasattr(ball_tracker, "interpolate_ball_positions"):
-                    ball_tracks = ball_tracker.interpolate_ball_positions(ball_tracks)
+        # 4) Optional ball cleanup (safe no-ops if your class includes these)
+        if hasattr(ball_tracker, "remove_wrong_detections"):
+            ball_tracks = ball_tracker.remove_wrong_detections(ball_tracks)
+        if hasattr(ball_tracker, "interpolate_ball_positions"):
+            ball_tracks = ball_tracker.interpolate_ball_positions(ball_tracks)
 
-                # 5) Team assignment (minimal)
-                team_assigner = TeamAssigner()
-                _player_assignment = team_assigner.get_player_teams_across_frames(
-                    frames,
-                    player_tracks,
-                    read_from_stub=False,
-                    # stub_path=os.path.join(args.stub_path, "player_assignment_stub.pkl")
-                )
-                # (We don’t draw team colors here, but you now have the mapping if you need it.)
+        # # 5) Team assignment (minimal)
+        # team_assigner = TeamAssigner()
+        # _player_assignment = team_assigner.get_player_teams_across_frames(
+        #     frames,
+        #     player_tracks,
+        #     read_from_stub=False,
+        #     # stub_path=os.path.join(args.stub_path, "player_assignment_stub.pkl")
+        # )
+        # (We don’t draw team colors here, but you now have the mapping if you need it.)
 
-                # 6) Minimal overlay (rectangles only)
-                output_frames = draw_basic_boxes(frames, player_tracks, ball_tracks)
+        # 6) Minimal overlay (rectangles only)
+        output_frames = draw_basic_boxes(frames, player_tracks, ball_tracks)
 
-                base, _ = os.path.splitext(file)
+        # 🔎 Parse path pieces: .../<team_name>/<game_name>/<play_instance>.mp4
+        norm_path = os.path.normpath(input_path)
+        parts = norm_path.split(os.sep)
+        try:
+            team_name   = parts[-3]
+            game_name   = parts[-2]
+            play_stem   = os.path.splitext(os.path.basename(input_path))[0]  # play_instance without .mp4
+        except IndexError:
+            raise ValueError(
+                "input_path must look like data/game_clips/<team_name>/<game_name>/<play_instance>.mp4"
+            )
 
-                # Defining output csv path
-                output_csv = os.path.join(input_path, f"{base}_tracks.csv")
-                
-                # Defining output video path
-                output_video = os.path.join(input_path, f"{base}_output.mp4")
+        # 📄 Output paths in same folder as the video
+        output_csv   = os.path.splitext(input_path)[0] + ".csv"        # .../<play_instance>.csv
+        output_video = os.path.splitext(input_path)[0] + "_output.mp4" # .../<play_instance>_output.mp4
 
-                # 7) Save video
-                save_video(output_frames, output_video)
-                # os.makedirs("output", exist_ok=True)   # make sure output folder exists
-                save_tracks_csv(player_tracks, ball_tracks, output_csv)
+        # Save video
+        save_video(output_frames, output_video)
+
+        # Save CSV with extra columns
+        save_tracks_csv(player_tracks, ball_tracks, output_csv,
+                        game_name=game_name, play_instance=play_stem)
+
+
+        # OLD CODE TO REVERT TO IF THIS DOESNT WORK
+        # base, _ = os.path.splitext(file)
+
+        # # Defining output csv path
+        # output_csv = os.path.join(input_path, f"{base}_tracks.csv")
+        
+        # # Defining output video path
+        # output_video = os.path.join(input_path, f"{base}_output.mp4")
+
+        # # 7) Save video
+        # save_video(output_frames, output_video)
+        # # os.makedirs("output", exist_ok=True)   # make sure output folder exists
+        # save_tracks_csv(player_tracks, ball_tracks, output_csv)
+
+
     
 
 # def main():
@@ -208,4 +295,4 @@ def inference():
 #     save_tracks_csv(player_tracks, ball_tracks, f"output/tracks.csv")
 
 if __name__ == "__main__":
-    inference()
+    run_inference()
