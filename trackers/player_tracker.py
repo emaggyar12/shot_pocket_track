@@ -3,6 +3,7 @@ import supervision as sv
 import sys 
 sys.path.append('../')
 # from utils import read_stub, save_stub
+from utils import numpy_core_shim
 
 class PlayerTracker:
     """
